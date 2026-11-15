@@ -1,0 +1,1758 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PAINEL DE CONTROLE DE EFETIVO - CIA</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            tactical: {
+              950: '#020617',
+              900: '#0f172a',
+              850: '#162033',
+              800: '#1e293b',
+              700: '#334155',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Estilização customizada da scrollbar para tema dark tático */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #020617;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 9999px;
+      border: 2px solid #020617;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+    .tab-scroll::-webkit-scrollbar {
+      height: 4px;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+      animation: fadeIn 0.2s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-cyan-500/30 selection:text-cyan-200 min-h-screen flex flex-col">
+
+  <!-- Input oculto para upload rápido de foto no card -->
+  <input type="file" id="quick-photo-input" accept="image/*" class="hidden" />
+  <!-- Input oculto para importar JSON -->
+  <input type="file" id="import-json-input" accept=".json,application/json" class="hidden" />
+
+  <!-- HEADER FIXO -->
+  <header class="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 shadow-lg shadow-black/40">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-3">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        
+        <!-- Logo & Título -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 border border-cyan-400/30 shrink-0">
+              <i class="fa-solid fa-shield-halved text-white text-lg"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h1 class="text-base sm:text-lg font-extrabold tracking-tight text-white">
+                  CONTROLE DE EFETIVO OPERACIONAL — <span class="text-cyan-400">CIA</span>
+                </h1>
+                <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>SISTEMA ATIVO
+                </span>
+              </div>
+              <p class="text-xs text-slate-400">Painel de Gestão de Pessoal, Escalas e Almanaque • Auto-Save Local</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Busca Global & Ações -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+          <!-- Busca Global Instantânea -->
+          <div class="relative flex-1 sm:w-72 md:w-80">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input
+              type="text"
+              id="global-search"
+              placeholder="Buscar Nome, RG, Graduação ou Setor..."
+              class="w-full bg-slate-900/90 border border-slate-700/80 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 rounded-xl pl-9 pr-8 py-2 text-xs sm:text-sm text-slate-100 placeholder-slate-500 outline-none transition-all"
+            />
+            <button id="clear-search-btn" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1" title="Limpar busca">
+              <i class="fa-solid fa-xmark text-xs"></i>
+            </button>
+          </div>
+
+          <!-- Botões de Ação -->
+          <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <button onclick="openAddModal()" class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs transition-all shadow-md shadow-cyan-950/50 border border-cyan-400/20 cursor-pointer">
+              <i class="fa-solid fa-user-plus"></i>
+              <span>+ Novo Policial</span>
+            </button>
+
+            <button onclick="exportCSV()" title="Exportar Planilha CSV/Excel" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 font-medium text-xs border border-slate-700 transition-all cursor-pointer">
+              <i class="fa-solid fa-file-excel"></i>
+              <span class="hidden md:inline">Planilha CSV</span>
+            </button>
+
+            <button onclick="exportJSON()" title="Exportar Backup Completo (com fotos)" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs border border-slate-700 transition-all cursor-pointer">
+              <i class="fa-solid fa-download text-cyan-400"></i>
+              <span class="hidden md:inline">Backup JSON</span>
+            </button>
+
+            <button onclick="document.getElementById('import-json-input').click()" title="Restaurar Backup JSON" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs border border-slate-700 transition-all cursor-pointer">
+              <i class="fa-solid fa-upload text-indigo-400"></i>
+              <span class="hidden md:inline">Importar</span>
+            </button>
+
+            <button onclick="openConfirmReset()" title="Restaurar Dados Originais da Planilha" class="inline-flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl bg-slate-900 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 font-medium text-xs border border-slate-800 hover:border-rose-800/50 transition-all cursor-pointer">
+              <i class="fa-solid fa-rotate-left"></i>
+              <span class="hidden xl:inline">Resetar</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main class="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+    <!-- BANNER DE RESULTADOS DA BUSCA GLOBAL -->
+    <section id="search-results-section" class="hidden animate-fade-in bg-slate-900/90 border border-cyan-500/40 rounded-2xl p-4 sm:p-5 shadow-xl shadow-cyan-950/20">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <span class="w-8 h-8 rounded-lg bg-cyan-500/15 text-cyan-400 flex items-center justify-center border border-cyan-500/30">
+            <i class="fa-solid fa-radar"></i>
+          </span>
+          <div>
+            <h2 class="text-sm sm:text-base font-bold text-white">Resultados da Busca Global</h2>
+            <p id="search-summary-text" class="text-xs text-slate-400">Encontrados 0 registros</p>
+          </div>
+        </div>
+        <button onclick="clearSearch()" class="self-start sm:self-auto px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-medium transition-colors">
+          Fechar Busca
+        </button>
+      </div>
+      <div id="search-results-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"></div>
+    </section>
+
+    <!-- CARTÕES DE KPIS -->
+    <section id="kpi-section" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 relative overflow-hidden group hover:border-slate-700 transition-all">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Efetivo Total Cadastrado</p>
+            <div class="flex items-baseline gap-2 mt-2">
+              <span id="kpi-total" class="text-3xl font-extrabold font-mono text-white">175</span>
+              <span class="text-xs text-cyan-400 font-medium">militares</span>
+            </div>
+            <p id="kpi-photos-count" class="text-[11px] text-slate-400 mt-2 flex items-center gap-1.5">
+              <i class="fa-solid fa-camera text-cyan-400"></i> <span>0 com foto cadastrada</span>
+            </p>
+          </div>
+          <div class="w-11 h-11 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+            <i class="fa-solid fa-users text-lg"></i>
+          </div>
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 to-indigo-500 opacity-70"></div>
+      </div>
+
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 relative overflow-hidden group hover:border-slate-700 transition-all">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Empregado / Operacional</p>
+            <div class="flex items-baseline gap-2 mt-2">
+              <span id="kpi-active" class="text-3xl font-extrabold font-mono text-emerald-400">156</span>
+              <span id="kpi-active-pct" class="text-xs font-mono text-emerald-400/80 bg-emerald-500/10 px-1.5 py-0.5 rounded">89%</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-2">Distribuídos em 11 setores e escalas</p>
+          </div>
+          <div class="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+            <i class="fa-solid fa-person-military-rifle text-lg"></i>
+          </div>
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-400 opacity-70"></div>
+      </div>
+
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 relative overflow-hidden group hover:border-slate-700 transition-all">
+        <div class="flex items-start justify-between">
+          <div class="w-full pr-2">
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Afastamentos Totais</p>
+            <div class="flex items-baseline gap-2 mt-2">
+              <span id="kpi-away" class="text-3xl font-extrabold font-mono text-amber-400">27</span>
+              <span class="text-xs text-slate-400">baixados / férias</span>
+            </div>
+            <div id="kpi-away-breakdown" class="flex flex-wrap gap-1.5 mt-2 text-[10px] font-mono"></div>
+          </div>
+          <div class="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+            <i class="fa-solid fa-user-clock text-lg"></i>
+          </div>
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-orange-500 opacity-70"></div>
+      </div>
+
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 relative overflow-hidden group hover:border-slate-700 transition-all">
+        <div class="flex items-center justify-between mb-2">
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Distribuição por Graduação</p>
+          <i class="fa-solid fa-chevrons-up text-indigo-400 text-xs"></i>
+        </div>
+        <div id="kpi-ranks-bars" class="space-y-1.5"></div>
+      </div>
+    </section>
+
+    <!-- NAVEGAÇÃO POR ABAS -->
+    <nav class="bg-slate-900/90 border border-slate-800 rounded-2xl p-1.5 shadow-md">
+      <div id="tabs-container" class="flex items-center gap-1.5 overflow-x-auto tab-scroll pb-1 sm:pb-0"></div>
+    </nav>
+
+    <!-- CONTEÚDO DA ABA ATIVA -->
+    <section id="tab-content" class="animate-fade-in"></section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800/80 bg-slate-950 py-4 px-6 text-center sm:text-left">
+    <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+      <p>PAINEL DE CONTROLE DE EFETIVO — CIA • Sincronização LocalStorage.</p>
+      <p class="font-mono text-[11px] text-slate-400" id="last-saved-indicator">Salvo com sucesso</p>
+    </div>
+  </footer>
+
+  <!-- MODAL DE EDIÇÃO -->
+  <div id="officer-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden my-auto animate-fade-in">
+      <div class="px-5 py-4 bg-slate-850 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center">
+            <i class="fa-solid fa-id-card-clip"></i>
+          </div>
+          <div>
+            <h3 id="modal-title" class="text-base font-bold text-white">Editar Ficha do Policial</h3>
+            <p id="modal-subtitle" class="text-xs text-slate-400">Altere dados, foto, alocação de setor ou férias</p>
+          </div>
+        </div>
+        <button onclick="closeOfficerModal()" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+
+      <form id="officer-form" onsubmit="saveOfficerForm(event)" class="p-5 space-y-5 max-h-[80vh] overflow-y-auto">
+        <input type="hidden" id="form-mode" value="edit" />
+        <input type="hidden" id="form-original-rg" value="" />
+        <input type="hidden" id="form-slot-id" value="" />
+
+        <div class="flex flex-col sm:flex-row gap-5 items-center sm:items-start bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+          <div class="flex flex-col items-center gap-2 shrink-0">
+            <div id="modal-photo-preview" class="w-24 h-28 rounded-xl bg-slate-800 border-2 border-dashed border-slate-600 flex flex-col items-center justify-center overflow-hidden relative group"></div>
+            <div class="flex items-center gap-1.5">
+              <label for="modal-photo-input" class="px-2.5 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-[11px] font-semibold cursor-pointer transition-colors">
+                <i class="fa-solid fa-camera mr-1"></i>Foto
+              </label>
+              <button type="button" id="modal-remove-photo-btn" onclick="removeModalPhoto()" class="hidden px-2 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 text-[11px] font-semibold transition-colors" title="Remover foto">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+            <input type="file" id="modal-photo-input" accept="image/*" class="hidden" onchange="handleModalPhotoUpload(event)" />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 flex-1 w-full">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Graduação *</label>
+              <select id="form-rank" required class="w-full bg-slate-900 border border-slate-700 focus:border-cyan-500 rounded-xl px-3 py-2 text-sm text-white outline-none">
+                <option value="ST PM">ST PM</option>
+                <option value="1 SGT PM">1º SGT PM</option>
+                <option value="2 SGT PM">2º SGT PM</option>
+                <option value="3 SGT PM">3º SGT PM</option>
+                <option value="CB PM">CB PM</option>
+                <option value="SD PM">SD PM</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">RG *</label>
+              <input type="text" id="form-rg" required placeholder="Ex: 107371" class="w-full bg-slate-900 border border-slate-700 focus:border-cyan-500 rounded-xl px-3 py-2 text-sm font-mono text-white outline-none" />
+            </div>
+
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Nome de Guerra *</label>
+              <input type="text" id="form-name" required placeholder="Ex: ALEX" class="w-full bg-slate-900 border border-slate-700 focus:border-cyan-500 rounded-xl px-3 py-2 text-sm text-white uppercase outline-none" />
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-sitemap"></i> Lotação / Escala Operacional
+            </h4>
+            <span class="text-[11px] text-slate-400">Define em qual aba o militar aparece</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Setor Principal</label>
+              <select id="form-sector" onchange="updateSubgroupOptions()" class="w-full bg-slate-900 border border-slate-700 focus:border-cyan-500 rounded-xl px-3 py-2 text-sm text-white outline-none">
+                <option value="">-- Sem Setor Definido (Apenas Efetivo Total) --</option>
+                <option value="DELEGAÇÃO">DELEGAÇÃO</option>
+                <option value="PINÇAS">PINÇAS</option>
+                <option value="REVISTA">REVISTA</option>
+                <option value="FORÇA TÁTICA">FORÇA TÁTICA</option>
+                <option value="FORÇA DE ESCOLTA">FORÇA DE ESCOLTA</option>
+                <option value="VISIBILIDADES 12H">VISIBILIDADES 12H</option>
+                <option value="TROPA">TROPA</option>
+                <option value="SUPERVISÃO">SUPERVISÃO</option>
+                <option value="ESCALA 24/72H">ESCALA 24/72H</option>
+                <option value="SARGENTEAÇÃO">SARGENTEAÇÃO</option>
+                <option value="AFASTAMENTOS">AFASTAMENTOS</option>
+              </select>
+            </div>
+
+            <div id="subgroup-wrapper" class="hidden">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Subgrupo / Ala / Posto / Motivo</label>
+              <select id="form-subgroup" class="w-full bg-slate-900 border border-slate-700 focus:border-cyan-500 rounded-xl px-3 py-2 text-sm text-white outline-none"></select>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 space-y-3">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-calendar-check"></i> Controle de Férias 2027 & Observações
+          </h4>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Previsão de Férias 2027</label>
+              <select id="form-ferias-prev" class="w-full bg-slate-900 border border-slate-700 focus:border-cyan-500 rounded-xl px-3 py-2 text-sm text-white outline-none">
+                <option value="">Não definida</option>
+                <option value="JANEIRO">JANEIRO</option>
+                <option value="FEVEREIRO">FEVEREIRO</option>
+                <option value="MARÇO">MARÇO</option>
+                <option value="ABRIL">ABRIL</option>
+                <option value="MAIO">MAIO</option>
+                <option value="JUNHO">JUNHO</option>
+                <option value="JULHO">JULHO</option>
+                <option value="AGOSTO">AGOSTO</option>
+                <option value="SETEMBRO">SETEMBRO</option>
+                <option value="OUTUBRO">OUTUBRO</option>
+                <option value="NOVEMBRO">NOVEMBRO</option>
+                <option value="DEZEMBRO">DEZEMBRO</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Status / Gozado</label>
+              <select id="form-ferias-tirado" class="w-full bg-slate-900 border border-slate-700 focus:border-cyan-500 rounded-xl px-3 py-2 text-sm text-white outline-none">
+                <option value="">Pendente</option>
+                <option value="Programado">Programado</option>
+                <option value="Gozando">Gozando</option>
+                <option value="Concluído">Concluído</option>
+                <option value="Reprogramado">Reprogramado</option>
+              </select>
+            </div>
+
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Observações Gerais</label>
+              <input type="text" id="form-obs" placeholder="Anotações, CEFC, restrições..." class="w-full bg-slate-900 border border-slate-700 focus:border-cyan-500 rounded-xl px-3 py-2 text-sm text-white outline-none" />
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-800">
+          <div id="delete-buttons-group" class="flex items-center gap-2 w-full sm:w-auto">
+            <button type="button" id="btn-remove-from-sector" onclick="removeFromSectorOnly()" class="hidden flex-1 sm:flex-none px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 text-xs font-semibold transition-colors">
+              <i class="fa-solid fa-user-minus mr-1"></i>Remover do Setor
+            </button>
+            <button type="button" id="btn-delete-officer" onclick="deleteOfficerCompletely()" class="flex-1 sm:flex-none px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 text-xs font-semibold transition-colors">
+              <i class="fa-solid fa-trash-can mr-1"></i>Excluir Policial
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <button type="button" onclick="closeOfficerModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors">
+              Cancelar
+            </button>
+            <button type="submit" class="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-lg shadow-cyan-950/50 transition-all">
+              <i class="fa-solid fa-check mr-1.5"></i>Salvar Alterações
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIRMAÇÃO -->
+  <div id="confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl animate-fade-in">
+      <div class="flex items-start gap-3">
+        <div id="confirm-icon-box" class="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center shrink-0">
+          <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+        </div>
+        <div>
+          <h3 id="confirm-title" class="text-base font-bold text-white">Confirmar Ação</h3>
+          <p id="confirm-message" class="text-xs text-slate-300 mt-1.5 leading-relaxed">Tem certeza?</p>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-2 mt-5 pt-3 border-t border-slate-800">
+        <button onclick="closeConfirmModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">
+          Cancelar
+        </button>
+        <button id="confirm-yes-btn" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold">
+          Confirmar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- JAVASCRIPT COMPLETO -->
+  <script>
+    const RAW_EFETIVO_TOTAL = `
+1|ST PM|51630|ALBERTO; 2|ST PM|54890|CUNHA; 3|ST PM|59524|RODRIGUES; 4|ST PM|62771|DEMETRIUS; 5|ST PM|63468|JEAN; 6|ST PM|63990|LEANDRO; 7|ST PM|63991|FIDELIS; 8|ST PM|64617|THIEL; 9|ST PM|66597|TOTI; 10|ST PM|68320|RENE; 11|ST PM|70264|NELSON; 12|ST PM|70323|GOMES ALVES; 13|ST PM|70591|GOULART; 14|ST PM|71119|MENEZES; 15|ST PM|71378|MARQUES; 16|ST PM|72023|FONSECA; 17|ST PM|72950|ÁVILA; 18|ST PM|73227|PRADO; 19|ST PM|73242|R GOMES; 20|ST PM|73285|THIAGO; 21|ST PM|74065|TOSTES; 22|ST PM|74100|CARDOSO; 23|1 SGT PM|78132|SIDNEY; 24|ST PM|78220|MOREIRA; 25|1 SGT PM|78515|E. AZEVEDO; 26|1 SGT PM|80283|ROMULO; 27|1 SGT PM|81076|MICHEL; 28|1 SGT PM|81837|VITÓRIO; 29|1 SGT PM|81876|ANDRE; 30|1 SGT PM|83126|L.SOARES; 31|2 SGT PM|85086|JACOB; 32|2 SGT PM|86396|CAMARGO; 33|2 SGT PM|86678|MONTE; 34|2 SGT PM|87104|DA SILVA; 35|2 SGT PM|87370|CARVALHO; 36|2 SGT PM|87429|MONTENEGRO; 37|2 SGT PM|87536|BARRETO; 38|2 SGT PM|87803|PESSANHA; 39|2 SGT PM|88360|MENEGUIT; 40|2 SGT PM|88839|GLAUCO; 41|2 SGT PM|89016|GILBERTO; 42|3 SGT PM|89817|SODRE; 43|3 SGT PM|90570|CABIDO; 44|3 SGT PM|90574|OSVALDO; 45|3 SGT PM|90624|FREIRE; 46|3 SGT PM|91887|PERES; 47|3 SGT PM|92971|DE QUEIROZ; 48|3 SGT PM|93490|PAGANOT; 49|3 SGT PM|93568|TEIXEIRA; 50|3 SGT PM|93589|SCHAYDER; 51|3 SGT PM|93880|S.SOUZA; 52|3 SGT PM|94122|XAVIER; 53|3 SGT PM|94442|TONASSI; 54|3 SGT PM|94446|DA CRUZ; 55|3 SGT PM|94479|ROSEMBERG; 56|3 SGT PM|94556|SANTIAGO; 57|3 SGT PM|94631|FILGUEIRAS; 58|3 SGT PM|94734|FLAZIO; 59|3 SGT PM|94858|MATTOSO; 60|3 SGT PM|95235|DE ALMEIDA; 61|3 SGT PM|96180|SOARES; 62|3 SGT PM|96659|MARTINS; 63|3 SGT PM|97152|ANCELMÉ; 64|3 SGT PM|97167|ROCHA; 65|3 SGT PM|97278|LETÍCIA; 66|3 SGT PM|97436|PEIXOTO; 67|3 SGT PM|97468|GURGEL; 68|3 SGT PM|97532|NEY; 69|3 SGT PM|97630|SOUZA COSTA; 70|3 SGT PM|97800|BRAZ; 71|3 SGT PM|97870|DE SOUZA; 72|3 SGT PM|97920|KLINGER; 73|3 SGT PM|98607|SOUZA; 74|3 SGT PM|99057|L.TEIXEIRA; 75|3 SGT PM|100074|PEREIRA; 76|3 SGT PM|100097|FORTES; 77|3 SGT PM|100106|MONSUETO; 78|3 SGT PM|100154|ANDERSON; 79|3 SGT PM|100243|VAGNER; 80|3 SGT PM|100342|WACHULEC; 81|3 SGT PM|100984|MICHEL; 82|3 SGT PM|101018|DE JESUS; 83|3 SGT PM|101614|MARCELINO; 84|3 SGT PM|102195|LINS; 85|3 SGT PM|102483|BAIMA; 86|3 SGT PM|102775|WESLEY; 87|3 SGT PM|102792|D.SALES; 88|3 SGT PM|103247|CAMPOS; 89|3 SGT PM|103568|TEIXEIRA; 90|3 SGT PM|103619|A.TEXEIRA; 91|CB PM|104792|ANCHIETA; 92|CB PM|104925|J.MARQUES; 93|CB PM|105404|GALVÃO; 94|CB PM|105440|JUNIOR; 95|CB PM|105722|GOUVEIA; 96|CB PM|105891|FELIPE LUIZ; 97|CB PM|106010|ADY; 98|CB PM|106032|FRANZINI; 99|CB PM|106316|FONTES; 100|CB PM|106662|VITOR; 101|CB PM|107140|F COSTA; 102|CB PM|107313|JUAN; 103|CB PM|107323|HENRIQUE; 104|CB PM|107336|GUSTAVO; 105|CB PM|107346|TEBALDI; 106|CB PM|107360|CARNEVALE; 107|CB PM|107371|ALEX; 108|CB PM|107372|GERMANO; 109|CB PM|107412|WILLIAMS; 110|CB PM|107436|VANESSA; 111|CB PM|107499|COSTA; 112|CB PM|107511|LIMA; 113|CB PM|107578|LUERCIO; 114|CB PM|107709|PABLO; 115|CB PM|107727|R.ALVES; 116|CB PM|107824|S.CAMPOS; 117|CB PM|107830|C.FILHO; 118|CB PM|107847|TITO; 119|CB PM|107858|LEANDRO; 120|CB PM|107859|D.HENRIQUE; 121|CB PM|107940|M.MACHADO; 122|CB PM|108133|FIGUEREDO; 123|CB PM|108407|ROCHA; 124|CB PM|108740|XAVIER; 125|CB PM|108800|SILVA; 126|CB PM|108855|BENEVENUTO; 127|CB PM|109176|MOURA; 128|CB PM|109308|S.FERNANDES; 129|CB PM|109664|SOARES; 130|SD PM|109954|CASSIANO; 131|SD PM|110815|NATALY; 132|SD PM|111000|RONALDO; 133|SD PM|111019|MOURA; 134|SD PM|111407|AQUINO; 135|SD PM|112565|SARA; 136|SD PM|112778|NUNES; 137|SD PM|112811|DOMINGOS; 138|SD PM|112815|F.PEREIRA; 139|SD PM|112820|FELLIPE; 140|SD PM|113102|G.NASCIMENTO; 141|SD PM|113276|CORDEIRO; 142|SD PM|113277|CESPE; 143|SD PM|113279|EDUARDO; 144|SD PM|113282|JHONY; 145|SD PM|113292|M.MOURA; 146|SD PM|113300|MACIEL; 147|SD PM|113305|GLAUBER; 148|SD PM|113308|SARMENTO; 149|SD PM|113309|FARAH; 150|SD PM|113312|MAGNO; 151|SD PM|113313|CAMPOS; 152|SD PM|113314|SANTANA; 153|SD PM|113329|MARQUES; 154|SD PM|113337|LESSA; 155|SD PM|113344|GABRYELLE; 156|SD PM|113346|MAXWEL; 157|SD PM|113348|DE ALBUQUERQUE; 158|SD PM|113349|BASTOS; 159|SD PM|113351|DE ARAUJO; 160|SD PM|113354|JERONIMO; 161|SD PM|113355|XAVIER; 162|SD PM|113536|TAVARES; 163|SD PM|113359|R.CARDOSO; 164|SD PM|113362|CARNEIRO; 165|SD PM|113363|HARTT; 166|SD PM|113370|JEANN; 167|SD PM|113373|ANTUNES; 168|SD PM|113385|C.SILVA; 169|SD PM|113426|LEONAM; 170|SD PM|113477|GUSMAO; 171|SD PM|113507|GONZAGA; 172|SD PM|113509|NOBREGA; 173|SD PM|113528|J.ALVES; 174|SD PM|113535|G.SANTOS; 175|SD PM|113537|PAULO ARAUJO
+    `;
+
+    const RAW_SECTOR_SLOTS = [
+      { sector: 'DELEGAÇÃO', subgroup: '', items: 'ST PM|70323|GOMES ALVES; 1 SGT PM|81876|ANDRE; 2 SGT PM|87429|MONTENEGRO; 2 SGT PM|89016|GILBERTO; 3 SGT PM|96180|SOARES; 3 SGT PM|97152|ANCELMÉ; 3 SGT PM|102762|D.SALES; CB PM|109664|SOARES' },
+      { sector: 'PINÇAS', subgroup: '', items: 'ST PM|63990|LEANDRO; ST PM|64617|THIEL; ST PM|72950|ÁVILA; ST PM|73285|THIAGO; 1 SGT PM|81076|MICHEL; 1 SGT PM|81837|VITÓRIO; CB PM|107313|JUAN' },
+      { sector: 'REVISTA', subgroup: '', items: '2 SGT PM|87370|CARVALHO; 3 SGT PM|90570|CABIDO; 3 SGT PM|93490|PAGANOT; 3 SGT PM|94479|ROSEMBERG; 3 SGT PM|100984|MICHEL' },
+      { sector: 'FORÇA TÁTICA', subgroup: 'FORÇA TÁTICA 1', items: '3 SGT PM|94631|FILGUEIRAS; 3 SGT PM|97468|GURGEL; 3 SGT PM|102195|LINS; 3 SGT PM|103619|A. TEIXEIRA; CB PM|106316|FONTES; CB PM|105722|GOUVEIA; CB PM|108800|SILVA' },
+      { sector: 'FORÇA TÁTICA', subgroup: 'FORÇA TÁTICA 2', items: '3 SGT PM|91887|PERES; 3 SGT PM|94734|FLAZIO; 3 SGT PM|100106|MONSUETO; CB PM|103247|CAMPOS; CB PM|107412|WILLIAMS; CB PM|108740|XAVIER; CB PM|109308|S.FERNANDES' },
+      { sector: 'FORÇA DE ESCOLTA', subgroup: '', items: '1 SGT PM|80283|ROMULO; 3 SGT PM|100097|FORTES; 3 SGT PM|102775|WESLEY; CB PM|107371|ALEX; CB PM|107727|R.ALVES; CB PM|107859|D.HENRIQUE; CB PM|107140|F.COSTA; CB PM|108855|BENEVENUTO; SD PM|111019|MOURA' },
+      { sector: 'VISIBILIDADES 12H', subgroup: 'ALFA - VISIBILIDADE 2', items: '3 SGT PM|97167|ROCHA' },
+      { sector: 'VISIBILIDADES 12H', subgroup: 'ALFA - VISIBILIDADE 3', items: '3 SGT PM|98607|SOUZA' },
+      { sector: 'VISIBILIDADES 12H', subgroup: 'ALFA - VISIBILIDADE 4', items: 'CB PM|107372|GERMANO; 2 SGT PM|86396|CAMARGO' },
+      { sector: 'VISIBILIDADES 12H', subgroup: 'BRAVO - VISIBILIDADE 2', items: 'CB PM|107578|LUERCIO; SD PM|110815|NATALY' },
+      { sector: 'VISIBILIDADES 12H', subgroup: 'BRAVO - VISIBILIDADE 3', items: '3 SGT PM|92971|DE QUEIROZ; CB PM|107360|CARNEVALE' },
+      { sector: 'VISIBILIDADES 12H', subgroup: 'BRAVO - VISIBILIDADE 4', items: 'CB PM|109176|MOURA' },
+      { sector: 'TROPA', subgroup: '', items: '2 SGT PM|85086|JACOB; 2 SGT PM|87536|BARRETO; 2 SGT PM|87803|PESSANHA; 3 SGT PM|90574|OSVALDO; 3 SGT PM|93568|TEIXEIRA; 3 SGT PM|94122|XAVIER; 3 SGT PM|94556|SANTIAGO; 3 SGT PM|94858|MATTOSO; 3 SGT PM|95235|DE ALMEIDA; 3 SGT PM|97278|LETICIA; 3 SGT PM|97436|PEIXOTO; 3 SGT PM|91630|SOUZA COSTA; 3 SGT PM|97800|BRAZ; 3 SGT PM|97870|DE SOUZA; 3 SGT PM|97920|KLINGER; 3 SGT PM|99057|L. TEIXEIRA; 3 SGT PM|100243|VAGNER; 3 SGT PM|101018|DE JESUS; 3 SGT PM|102483|BAIMA; CB PM|104792|ANCHIETA; CB PM|105404|GALVÃO; CB PM|106032|FRANZINI; CB PM|106662|VITOR; CB PM|107323|HENRIQUE; CB PM|107499|COSTA; CB PM|107830|C. FILHO; CB PM|107847|TITO; SD PM|109954|CASSIANO; SD PM|112565|SARA; SD PM|112778|NUNES; SD PM|112811|DOMINGOS; SD PM|112815|F.PEREIRA; SD PM|112820|FELLIPE; SD PM|113102|G.NASCIMENTO; SD PM|113276|CORDEIRO; SD PM|113277|CESPE; SD PM|113279|EDUARDO; SD PM|113282|JHONY; SD PM|113292|M.MOURA; SD PM|113300|MACIEL; SD PM|113305|GLAUBER; SD PM|113308|SARMENTO; SD PM|113309|FARAH; SD PM|113312|MAGNO; SD PM|113313|CAMPOS; SD PM|113314|SANTANA; SD PM|113329|MARQUES; SD PM|113337|LESSA; SD PM|113344|GABRYELLE; SD PM|113346|MAXWEL; SD PM|113348|DE ALBUQUERQUE; SD PM|113349|BASTOS; SD PM|113351|DE ARAUJO; SD PM|113354|JERONIMO; SD PM|113355|XAVIER; SD PM|113536|TAVARES; SD PM|113359|R.CARDOSO; SD PM|113362|CARNEIRO; SD PM|113363|HARTT; SD PM|113370|JEANN; SD PM|113373|ANTUNES; SD PM|113385|C.SILVA; SD PM|113426|LEONAM; SD PM|113477|GUSMAO; SD PM|113507|GONZAGA; SD PM|113509|NOBREGA; SD PM|113528|J.ALVES; SD PM|113535|G.SANTOS; SD PM|113537|PAULO ARAUJO' },
+      { sector: 'SUPERVISÃO', subgroup: 'ALFA', items: 'ST PM|74100|CARDOSO; ST PM|71199|MENEZES' },
+      { sector: 'SUPERVISÃO', subgroup: 'BRAVO', items: 'ST PM|68320|RENE; ST PM|72023|FONSECA' },
+      { sector: 'ESCALA 24/72H', subgroup: 'ALA A - FISCAL DE DIA', items: 'ST PM|70264|NELSON' },
+      { sector: 'ESCALA 24/72H', subgroup: 'ALA A - DESPACHANTE', items: '3 SGT PM|97532|NEY' },
+      { sector: 'ESCALA 24/72H', subgroup: 'ALA A - GUARDA', items: '3 SGT PM|100154|ANDERSON' },
+      { sector: 'ESCALA 24/72H', subgroup: 'ALA A - VISIBILIDADE 1', items: '2 SGT PM|86678|MONTE; CB PM|106010|ADY' },
+      { sector: 'ESCALA 24/72H', subgroup: 'ALA B - FISCAL DE DIA', items: 'ST PM|54890|CUNHA' },
+      { sector: 'ESCALA 24/72H', subgroup: 'ALA B - DESPACHANTE', items: 'ST PM|51630|ALBERTO' },
+      { sector: 'ESCALA 24/72H', subgroup: 'ALA B - GUARDA', items: '1 SGT PM|78515|E.AZEVEDO' },
+      { sector: 'ESCALA 24/72H', subgroup: 'ALA B - VISIBILIDADE 1', items: '1 SGT PM|83126|L.SOARES; CB PM|107336|GUSTAVO' },
+      { sector: 'ESCALA 24/72H', subgroup: 'ALA C - FISCAL DE DIA', items: 'ST PM|78220|MOREIRA' },
+      { sector: 'ESCALA 24/72H', subgroup: 'ALA C - DESPACHANTE', items: 'ST PM|59524|RODRIGUES' },
+      { sector: 'ESCALA 24/72H', subgroup: 'ALA C - GUARDA', items: 'ST PM|73227|PRADO' },
+      { sector: 'ESCALA 24/72H', subgroup: 'ALA C - VISIBILIDADE 1', items: 'CB PM|104925|J. MARQUES; CB PM|108133|FIGUEREDO' },
+      { sector: 'ESCALA 24/72H', subgroup: 'ALA D - FISCAL DE DIA', items: 'ST PM|66597|TOTI' },
+      { sector: 'ESCALA 24/72H', subgroup: 'ALA D - DESPACHANTE', items: 'ST PM|73378|MARQUES' },
+      { sector: 'ESCALA 24/72H', subgroup: 'ALA D - GUARDA', items: '3 SGT PM|94442|TONASSI' },
+      { sector: 'ESCALA 24/72H', subgroup: 'ALA D - VISIBILIDADE 1', items: '3 SGT PM|101614|MARCELINO; SD PM|111000|RONALDO' },
+      { sector: 'SARGENTEAÇÃO', subgroup: '', items: '1 SGT PM|81820|ALEX; 1 SGT PM|82988|ROBERTO; 3 SGT PM|97161|AURÉLIO' },
+      { sector: 'AFASTAMENTOS', subgroup: 'SIESP', items: '3 SGT PM|96659|MARTINS; ST PM|70591|GOULART; 3 SGT PM|100342|WACHULEC; CB PM|107346|TEBALDI; CB PM|107940|M. MACHADO; 2 SGT PM|88839|GLAUCO; 2 SGT PM|88360|MENEGUIT; ST PM|63991|FIDELIS; ST PM|73242|R. GOMES' },
+      { sector: 'AFASTAMENTOS', subgroup: 'FÉRIAS', items: 'ST PM|63468|JEAN; 3 SGT PM|89817|SODRE; CB PM|107511|LIMA; CB PM|108407|ROCHA; 3 SGT PM|93589|SCHAYDER; CB PM|107436|VANESSA; CB PM|107709|PABLO; CB PM|107858|LEANDRO; 1 SGT PM|78132|SIDNEY; 3 SGT PM|93880|S.SOUZA; 3 SGT PM|100074|PEREIRA; CB PM|105891|FELIPE LUIZ; CB PM|107824|S.CAMPOS' },
+      { sector: 'AFASTAMENTOS', subgroup: 'LTS', items: 'ST PM|62771|DEMETRIUS; 2 SGT PM|87104|DA SILVA' },
+      { sector: 'AFASTAMENTOS', subgroup: 'CURSO', items: '3 SGT PM|90624|FREIRE; CB PM|105440|JUNIOR; SD PM|111407|AQUINO' }
+    ];
+
+    const SECTOR_SUBGROUPS = {
+      'DELEGAÇÃO': [],
+      'PINÇAS': [],
+      'REVISTA': [],
+      'FORÇA TÁTICA': ['FORÇA TÁTICA 1', 'FORÇA TÁTICA 2'],
+      'FORÇA DE ESCOLTA': [],
+      'VISIBILIDADES 12H': [
+        'ALFA - VISIBILIDADE 2', 'ALFA - VISIBILIDADE 3', 'ALFA - VISIBILIDADE 4',
+        'BRAVO - VISIBILIDADE 2', 'BRAVO - VISIBILIDADE 3', 'BRAVO - VISIBILIDADE 4'
+      ],
+      'TROPA': [],
+      'SUPERVISÃO': ['ALFA', 'BRAVO'],
+      'ESCALA 24/72H': [
+        'ALA A - FISCAL DE DIA', 'ALA A - DESPACHANTE', 'ALA A - GUARDA', 'ALA A - VISIBILIDADE 1',
+        'ALA B - FISCAL DE DIA', 'ALA B - DESPACHANTE', 'ALA B - GUARDA', 'ALA B - VISIBILIDADE 1',
+        'ALA C - FISCAL DE DIA', 'ALA C - DESPACHANTE', 'ALA C - GUARDA', 'ALA C - VISIBILIDADE 1',
+        'ALA D - FISCAL DE DIA', 'ALA D - DESPACHANTE', 'ALA D - GUARDA', 'ALA D - VISIBILIDADE 1'
+      ],
+      'SARGENTEAÇÃO': [],
+      'AFASTAMENTOS': ['SIESP', 'FÉRIAS', 'LTS', 'CURSO']
+    };
+
+    const ALL_SECTORS = [
+      'DELEGAÇÃO', 'PINÇAS', 'REVISTA', 'FORÇA TÁTICA', 'FORÇA DE ESCOLTA',
+      'VISIBILIDADES 12H', 'TROPA', 'SUPERVISÃO', 'ESCALA 24/72H', 'SARGENTEAÇÃO', 'AFASTAMENTOS'
+    ];
+
+    const RANK_WEIGHTS = {
+      'ST PM': 1,
+      '1 SGT PM': 2,
+      '2 SGT PM': 3,
+      '3 SGT PM': 4,
+      'CB PM': 5,
+      'SD PM': 6
+    };
+
+    const STORAGE_KEY = 'cia_efetivo_dashboard_v2';
+    let appState = {
+      efetivoTotal: [],
+      sectorSlots: [],
+      photos: {},
+      activeTab: 'VISAO_GERAL',
+      tropaSortMode: 'ORIGINAL',
+      feriasFilter: { search: '', month: 'ALL', status: 'ALL', sector: 'ALL', rank: 'ALL' }
+    };
+
+    let quickPhotoRgTarget = null;
+
+    function parseInitialData() {
+      const efetivoTotal = [];
+      RAW_EFETIVO_TOTAL.trim().split(';').forEach(line => {
+        const parts = line.trim().split('|');
+        if (parts.length >= 4) {
+          efetivoTotal.push({
+            ordem: parseInt(parts[0].trim()) || efetivoTotal.length + 1,
+            rank: parts[1].trim(),
+            rg: parts[2].trim(),
+            name: parts[3].trim(),
+            feriasPrev: '',
+            feriasTirado: '',
+            obs: ''
+          });
+        }
+      });
+
+      const sectorSlots = [];
+      let slotCounter = 1;
+      RAW_SECTOR_SLOTS.forEach(group => {
+        if (group.items) {
+          group.items.split(';').forEach(itemStr => {
+            const p = itemStr.trim().split('|');
+            if (p.length >= 3) {
+              sectorSlots.push({
+                id: 'slot_' + (slotCounter++),
+                sector: group.sector,
+                subgroup: group.subgroup || '',
+                rank: p[0].trim(),
+                rg: p[1].trim(),
+                name: p[2].trim()
+              });
+            }
+          });
+        }
+      });
+
+      return { efetivoTotal, sectorSlots, photos: {}, activeTab: 'VISAO_GERAL', tropaSortMode: 'ORIGINAL', feriasFilter: { search: '', month: 'ALL', status: 'ALL', sector: 'ALL', rank: 'ALL' } };
+    }
+
+    function loadState() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && Array.isArray(parsed.efetivoTotal) && Array.isArray(parsed.sectorSlots)) {
+            appState = {
+              efetivoTotal: parsed.efetivoTotal,
+              sectorSlots: parsed.sectorSlots,
+              photos: parsed.photos || {},
+              activeTab: parsed.activeTab || 'VISAO_GERAL',
+              tropaSortMode: parsed.tropaSortMode || 'ORIGINAL',
+              feriasFilter: parsed.feriasFilter || { search: '', month: 'ALL', status: 'ALL', sector: 'ALL', rank: 'ALL' }
+            };
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Erro ao ler localStorage:', e);
+      }
+      appState = parseInitialData();
+      saveState();
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+        const now = new Date().toLocaleTimeString('pt-BR');
+        const ind = document.getElementById('last-saved-indicator');
+        if (ind) ind.textContent = `Salvo às ${now}`;
+      } catch (e) {
+        console.error('Erro ao salvar no localStorage:', e);
+      }
+    }
+
+    // Utilitários
+    function getInitials(name) {
+      if (!name) return 'PM';
+      const parts = name.trim().split(' ');
+      if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      return name.slice(0, 2).toUpperCase();
+    }
+
+    function formatRankDisplay(rank) {
+      if (!rank) return 'SD PM';
+      return rank.replace('º', '').toUpperCase();
+    }
+
+    function getRankBadgeStyle(rank) {
+      const r = (rank || '').toUpperCase();
+      if (r.includes('ST')) return { badge: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30', avatar: 'from-cyan-600 to-blue-700 text-white' };
+      if (r.includes('1 SGT') || r.includes('1º SGT')) return { badge: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30', avatar: 'from-indigo-600 to-purple-700 text-white' };
+      if (r.includes('2 SGT') || r.includes('2º SGT')) return { badge: 'bg-purple-500/15 text-purple-300 border-purple-500/30', avatar: 'from-purple-600 to-pink-700 text-white' };
+      if (r.includes('3 SGT') || r.includes('3º SGT')) return { badge: 'bg-teal-500/15 text-teal-300 border-teal-500/30', avatar: 'from-teal-600 to-emerald-700 text-white' };
+      if (r.includes('CB')) return { badge: 'bg-amber-500/15 text-amber-300 border-amber-500/30', avatar: 'from-amber-600 to-orange-700 text-white' };
+      return { badge: 'bg-slate-800 text-slate-300 border-slate-700', avatar: 'from-slate-700 to-slate-800 text-slate-200' };
+    }
+
+    function getOfficerSectorLabel(rg) {
+      const slots = appState.sectorSlots.filter(s => s.rg === rg);
+      if (slots.length === 0) return 'Não alocado';
+      return slots.map(s => s.subgroup ? `${s.sector} (${s.subgroup})` : s.sector).join(', ');
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const bg = type === 'success' ? 'bg-emerald-950 border-emerald-500/40 text-emerald-200' : type === 'error' ? 'bg-rose-950 border-rose-500/40 text-rose-200' : 'bg-slate-900 border-cyan-500/40 text-cyan-200';
+      const icon = type === 'success' ? 'fa-circle-check text-emerald-400' : type === 'error' ? 'fa-circle-exclamation text-rose-400' : 'fa-circle-info text-cyan-400';
+      
+      toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl border shadow-xl text-xs font-semibold animate-fade-in ${bg}`;
+      toast.innerHTML = `<i class="fa-solid ${icon} text-sm"></i><span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Modal de Confirmação
+    let confirmCallback = null;
+    function openConfirmModal(title, message, onYes, isDanger = true) {
+      document.getElementById('confirm-title').textContent = title;
+      document.getElementById('confirm-message').textContent = message;
+      const iconBox = document.getElementById('confirm-icon-box');
+      const yesBtn = document.getElementById('confirm-yes-btn');
+      if (isDanger) {
+        iconBox.className = 'w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center shrink-0';
+        iconBox.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-lg"></i>';
+        yesBtn.className = 'px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold';
+      } else {
+        iconBox.className = 'w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center shrink-0';
+        iconBox.innerHTML = '<i class="fa-solid fa-circle-question text-lg"></i>';
+        yesBtn.className = 'px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold';
+      }
+      confirmCallback = onYes;
+      document.getElementById('confirm-modal').classList.remove('hidden');
+      document.getElementById('confirm-modal').classList.add('flex');
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirm-modal').classList.remove('flex');
+      document.getElementById('confirm-modal').classList.add('hidden');
+      confirmCallback = null;
+    }
+
+    document.getElementById('confirm-yes-btn').addEventListener('click', () => {
+      if (typeof confirmCallback === 'function') confirmCallback();
+      closeConfirmModal();
+    });
+
+    // Renderização das Abas (Navegação Superior)
+    function renderTabs() {
+      const tabsContainer = document.getElementById('tabs-container');
+      const tabs = [
+        { id: 'VISAO_GERAL', label: 'Visão Geral', icon: 'fa-gauge-high' },
+        { id: 'PREVISAO_FERIAS', label: 'Previsão de Férias', icon: 'fa-calendar-days' },
+        { id: 'EFETIVO_TOTAL', label: 'Efetivo Total (Almanaque)', icon: 'fa-users-rectangle' },
+        { id: 'DELEGAÇÃO', label: 'Delegação', icon: 'fa-shield' },
+        { id: 'PINÇAS', label: 'Pinças', icon: 'fa-crosshairs' },
+        { id: 'REVISTA', label: 'Revista', icon: 'fa-clipboard-check' },
+        { id: 'FORÇA TÁTICA', label: 'Força Tática', icon: 'fa-person-military-rifle' },
+        { id: 'FORÇA DE ESCOLTA', label: 'Força de Escolta', icon: 'fa-car-side' },
+        { id: 'VISIBILIDADES 12H', label: 'Visibilidades 12h', icon: 'fa-eye' },
+        { id: 'TROPA', label: 'Tropa', icon: 'fa-users' },
+        { id: 'SUPERVISÃO', label: 'Supervisão', icon: 'fa-user-tie' },
+        { id: 'ESCALA 24/72H', label: 'Escala 24/72h', icon: 'fa-clock' },
+        { id: 'SARGENTEAÇÃO', label: 'Sargenteação', icon: 'fa-medal' },
+        { id: 'AFASTAMENTOS', label: 'Afastamentos', icon: 'fa-user-clock' }
+      ];
+
+      tabsContainer.innerHTML = tabs.map(t => {
+        const isActive = appState.activeTab === t.id;
+        return `
+          <button
+            onclick="switchTab('${t.id}')"
+            class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+              isActive
+                ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-950/50 border border-cyan-400/30'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent'
+            }"
+          >
+            <i class="fa-solid ${t.icon}"></i>
+            <span>${t.label}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    // Renderização Geral
+    function renderAll() {
+      renderKPIs();
+      renderTabs();
+      renderTabContent();
+    }
+
+    function switchTab(tabId) {
+      appState.activeTab = tabId;
+      saveState();
+      renderAll();
+    }
+
+    // KPIs & Gráficos
+    function renderKPIs() {
+      const total = appState.efetivoTotal.length;
+      const photosCount = Object.keys(appState.photos).length;
+      const activeSlots = appState.sectorSlots.length;
+      const awayCount = appState.sectorSlots.filter(s => s.sector === 'AFASTAMENTOS').length;
+      const activeCount = Math.max(0, total - awayCount);
+      const activePct = total > 0 ? Math.round((activeCount / total) * 100) : 0;
+
+      document.getElementById('kpi-total').textContent = total;
+      document.getElementById('kpi-photos-count').innerHTML = `<i class="fa-solid fa-camera text-cyan-400"></i> <span>${photosCount} com foto cadastrada</span>`;
+      document.getElementById('kpi-active').textContent = activeCount;
+      document.getElementById('kpi-active-pct').textContent = `${activePct}%`;
+      document.getElementById('kpi-away').textContent = awayCount;
+
+      // Breakdown de afastamentos
+      const afSlots = appState.sectorSlots.filter(s => s.sector === 'AFASTAMENTOS');
+      const countsBySub = {};
+      afSlots.forEach(s => {
+        const sub = s.subgroup || 'OUTRO';
+        countsBySub[sub] = (countsBySub[sub] || 0) + 1;
+      });
+      const bdHtml = Object.entries(countsBySub).map(([k, v]) => `<span class="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">${k}: ${v}</span>`).join('');
+      document.getElementById('kpi-away-breakdown').innerHTML = bdHtml || '<span class="text-slate-500">Nenhum afastamento registrado</span>';
+
+      // Ranks bars
+      const rankCounts = {};
+      appState.efetivoTotal.forEach(o => {
+        const r = o.rank || 'SD PM';
+        rankCounts[r] = (rankCounts[r] || 0) + 1;
+      });
+
+      const rankOrder = ['ST PM', '1 SGT PM', '2 SGT PM', '3 SGT PM', 'CB PM', 'SD PM'];
+      const barsHtml = rankOrder.map(r => {
+        const count = rankCounts[r] || 0;
+        const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+        return `
+          <div>
+            <div class="flex justify-between text-[11px] mb-0.5">
+              <span class="font-bold text-slate-300">${formatRankDisplay(r)}</span>
+              <span class="font-mono text-cyan-400">${count} (${pct}%)</span>
+            </div>
+            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+              <div class="bg-cyan-500 h-full rounded-full" style="width: ${pct}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      document.getElementById('kpi-ranks-bars').innerHTML = barsHtml;
+    }
+
+    // Abas Conteúdo
+    function renderTabContent() {
+      const container = document.getElementById('tab-content');
+      const tab = appState.activeTab;
+
+      if (tab === 'VISAO_GERAL') renderVisaoGeral(container);
+      else if (tab === 'PREVISAO_FERIAS') renderPrevisaoFerias(container);
+      else if (tab === 'EFETIVO_TOTAL') renderEfetivoTotal(container);
+      else if (tab === 'TROPA') renderTropaSection(container);
+      else if (['FORÇA TÁTICA', 'ESCALA 24/72H', 'VISIBILIDADES 12H', 'SUPERVISÃO', 'AFASTAMENTOS'].includes(tab)) {
+        renderStructuredSector(container, tab);
+      } else {
+        renderSimpleSector(container, tab);
+      }
+    }
+
+    // Visão Geral
+    function renderVisaoGeral(container) {
+      const total = appState.efetivoTotal.length;
+      const sectorsSummary = ALL_SECTORS.map(sec => {
+        const count = appState.sectorSlots.filter(s => s.sector === sec).length;
+        return { name: sec, count };
+      });
+
+      container.innerHTML = `
+        <div class="space-y-6">
+          <div class="bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950/60 border border-slate-800 rounded-2xl p-6 shadow-xl">
+            <div class="max-w-3xl">
+              <span class="px-2.5 py-1 rounded-full text-xs font-mono font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                <i class="fa-solid fa-gauge-high mr-1"></i> DASHBOARD OPERACIONAL
+              </span>
+              <h2 class="text-2xl font-extrabold text-white mt-3">Companhia de Policiamento — Painel Tático Integrado</h2>
+              <p class="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
+                Bem-vindo ao sistema de controle de efetivo. Este painel replica e expande o modelo da planilha oficial com recursos avançados de gestão, fotos em alta resolução por RG, controle de férias e edição em tempo real.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            ${sectorsSummary.map(sec => `
+              <div onclick="switchTab('${sec.name}')" class="cursor-pointer bg-slate-900/90 border border-slate-800 hover:border-cyan-500/50 rounded-2xl p-5 transition-all group">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold uppercase tracking-wider text-slate-400 group-hover:text-cyan-400 transition-colors">${sec.name}</span>
+                  <div class="w-8 h-8 rounded-lg bg-slate-800 group-hover:bg-cyan-500/20 text-slate-300 group-hover:text-cyan-300 flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                  </div>
+                </div>
+                <div class="flex items-baseline gap-2 mt-4">
+                  <span class="text-3xl font-extrabold font-mono text-white">${sec.count}</span>
+                  <span class="text-xs text-slate-400">policiais</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // Efetivo Total (Almanaque)
+    function renderEfetivoTotal(container) {
+      const list = appState.efetivoTotal;
+      const statusOptions = ['', 'Programado', 'Gozando', 'Concluído', 'Reprogramado'];
+
+      const rowsHtml = list.map((officer, idx) => {
+        const style = getRankBadgeStyle(officer.rank);
+        const photo = appState.photos[officer.rg];
+        const initials = getInitials(officer.name);
+        const currentSector = getOfficerSectorLabel(officer.rg);
+        const isUnallocated = currentSector === 'Não alocado';
+
+        const avatarHtml = photo
+          ? `<img src="${photo}" alt="${officer.name}" class="w-full h-full object-cover" />`
+          : `<div class="w-full h-full bg-gradient-to-br ${style.avatar} flex items-center justify-center font-bold text-xs">${initials}</div>`;
+
+        return `
+          <tr class="border-b border-slate-800/70 hover:bg-slate-800/40 transition-colors group">
+            <td class="py-2.5 px-3 font-mono text-xs text-slate-400">${idx + 1}</td>
+            <td class="py-2.5 px-3">
+              <div onclick="triggerQuickPhoto('${officer.rg}', event)" title="Clique para incluir/alterar foto" class="w-10 h-11 rounded-lg overflow-hidden border border-slate-700 cursor-pointer relative group/av">
+                ${avatarHtml}
+                <div class="absolute inset-0 bg-black/60 opacity-0 group-hover/av:opacity-100 flex items-center justify-center text-white transition-opacity">
+                  <i class="fa-solid fa-camera text-[10px]"></i>
+                </div>
+              </div>
+            </td>
+            <td class="py-2.5 px-3 whitespace-nowrap">
+              <span class="px-2 py-0.5 rounded text-[11px] font-bold border ${style.badge}">${formatRankDisplay(officer.rank)}</span>
+            </td>
+            <td class="py-2.5 px-3 font-mono text-xs font-semibold text-cyan-300 whitespace-nowrap">${officer.rg}</td>
+            <td class="py-2.5 px-3 font-bold text-xs sm:text-sm text-white whitespace-nowrap">${officer.name}</td>
+            <td class="py-2.5 px-3 text-xs">
+              <span class="px-2 py-0.5 rounded-md font-medium ${isUnallocated ? 'bg-slate-800/70 text-slate-500' : 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30'}">
+                ${currentSector}
+              </span>
+            </td>
+            <td class="py-2.5 px-3">
+              <select onchange="updateAlmanaqueField('${officer.rg}', 'feriasPrev', this.value)" class="bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-2 py-1 text-xs text-slate-200 outline-none">
+                <option value="" ${!officer.feriasPrev ? 'selected' : ''}>—</option>
+                ${['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'].map(m =>
+                  `<option value="${m}" ${officer.feriasPrev === m ? 'selected' : ''}>${m}</option>`
+                ).join('')}
+              </select>
+            </td>
+            <td class="py-2.5 px-3">
+              <select onchange="updateAlmanaqueField('${officer.rg}', 'feriasTirado', this.value)" class="bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-2 py-1 text-xs text-slate-200 outline-none">
+                ${statusOptions.map(st =>
+                  `<option value="${st}" ${(officer.feriasTirado || '') === st ? 'selected' : ''}>${st || 'Pendente'}</option>`
+                ).join('')}
+              </select>
+            </td>
+            <td class="py-2.5 px-3">
+              <input
+                type="text"
+                value="${officer.obs || ''}"
+                onchange="updateAlmanaqueField('${officer.rg}', 'obs', this.value)"
+                placeholder="Observação..."
+                class="w-36 sm:w-44 bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-2 py-1 text-xs text-slate-200 outline-none"
+              />
+            </td>
+            <td class="py-2.5 px-3 text-right">
+              <button onclick="openEditModal('${officer.rg}', '')" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-cyan-600 text-slate-300 hover:text-white text-xs transition-colors cursor-pointer" title="Editar Ficha Completa">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      container.innerHTML = `
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div>
+              <h2 class="text-lg font-extrabold text-white">EFETIVO TOTAL DA COMPANHIA (${list.length} Militares)</h2>
+              <p class="text-xs text-slate-400">Almanaque geral com controle de férias 2027 e upload rápido de fotos</p>
+            </div>
+          </div>
+          <div class="overflow-x-auto rounded-xl border border-slate-800">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-950 border-b border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  <th class="py-3 px-3">#</th>
+                  <th class="py-3 px-3">Foto</th>
+                  <th class="py-3 px-3">Graduação</th>
+                  <th class="py-3 px-3">RG</th>
+                  <th class="py-3 px-3">Nome de Guerra</th>
+                  <th class="py-3 px-3">Setor Atual</th>
+                  <th class="py-3 px-3">Previsão 2027</th>
+                  <th class="py-3 px-3">Situação</th>
+                  <th class="py-3 px-3">Observações</th>
+                  <th class="py-3 px-3 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/50">${rowsHtml}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    // Previsão de Férias
+    const MONTHS_LIST = [
+      { key: 'JANEIRO', short: 'JAN' }, { key: 'FEVEREIRO', short: 'FEV' }, { key: 'MARÇO', short: 'MAR' },
+      { key: 'ABRIL', short: 'ABR' }, { key: 'MAIO', short: 'MAI' }, { key: 'JUNHO', short: 'JUN' },
+      { key: 'JULHO', short: 'JUL' }, { key: 'AGOSTO', short: 'AGO' }, { key: 'SETEMBRO', short: 'SET' },
+      { key: 'OUTUBRO', short: 'OUT' }, { key: 'NOVEMBRO', short: 'NOV' }, { key: 'DEZEMBRO', short: 'DEZ' }
+    ];
+
+    function setFeriasFilter(key, value) {
+      appState.feriasFilter[key] = value;
+      saveState();
+      renderTabContent();
+    }
+
+    function resetFeriasFilters() {
+      appState.feriasFilter = { search: '', month: 'ALL', status: 'ALL', sector: 'ALL', rank: 'ALL' };
+      saveState();
+      renderTabContent();
+    }
+
+    function renderPrevisaoFerias(container) {
+      const all = appState.efetivoTotal;
+      const totalCount = all.length;
+      const definedCount = all.filter(o => o.feriasPrev && o.feriasPrev.trim() !== '').length;
+      const pendingCount = totalCount - definedCount;
+      const definedPct = totalCount > 0 ? Math.round((definedCount / totalCount) * 100) : 0;
+      const f = appState.feriasFilter;
+
+      const monthCounts = MONTHS_LIST.map(m => ({
+        ...m,
+        count: all.filter(o => o.feriasPrev === m.key).length
+      }));
+      const maxMonthCount = Math.max(...monthCounts.map(m => m.count), 1);
+
+      const filteredList = all.filter(o => {
+        if (f.status === 'DEFINED' && !o.feriasPrev) return false;
+        if (f.status === 'PENDING' && o.feriasPrev) return false;
+        if (f.month !== 'ALL' && o.feriasPrev !== f.month) return false;
+        if (f.rank !== 'ALL' && o.rank !== f.rank) return false;
+        if (f.sector !== 'ALL') {
+          const secLabel = getOfficerSectorLabel(o.rg);
+          if (f.sector === 'UNALLOCATED' && secLabel !== 'Não alocado') return false;
+          if (f.sector !== 'UNALLOCATED' && !secLabel.includes(f.sector)) return false;
+        }
+        if (f.search && f.search.trim() !== '') {
+          const q = f.search.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          const hay = `${o.name} ${o.rg} ${o.rank} ${o.obs || ''}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+
+      const monthsGridHtml = monthCounts.map(m => {
+        const isSelected = f.month === m.key;
+        const barHeightPct = m.count > 0 ? Math.max(15, Math.round((m.count / maxMonthCount) * 100)) : 4;
+        return `
+          <button
+            onclick="setFeriasFilter('month', '${isSelected ? 'ALL' : m.key}')"
+            class="flex flex-col items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
+              isSelected ? 'bg-cyan-600/20 border-cyan-400 shadow-lg shadow-cyan-950/40' : 'bg-slate-950/70 border-slate-800 hover:border-slate-600'
+            }"
+            title="Filtrar ${m.key}"
+          >
+            <span class="text-[11px] font-bold tracking-wider ${isSelected ? 'text-cyan-300' : 'text-slate-400'}">${m.short}</span>
+            <div class="w-full h-10 flex items-end justify-center my-1.5 px-2">
+              <div class="w-full max-w-[22px] rounded-t-md transition-all duration-300 ${isSelected ? 'bg-cyan-400' : m.count > 0 ? 'bg-indigo-500/80' : 'bg-slate-800'}" style="height: ${barHeightPct}%"></div>
+            </div>
+            <span class="font-mono text-xs font-extrabold ${m.count > 0 ? 'text-white' : 'text-slate-600'}">${m.count}</span>
+          </button>
+        `;
+      }).join('');
+
+      const statusOptions = ['', 'Programado', 'Gozando', 'Concluído', 'Reprogramado'];
+
+      const rowsHtml = filteredList.map((officer, idx) => {
+        const style = getRankBadgeStyle(officer.rank);
+        const photo = appState.photos[officer.rg];
+        const initials = getInitials(officer.name);
+        const currentSector = getOfficerSectorLabel(officer.rg);
+        const isUnallocated = currentSector === 'Não alocado';
+        const hasMonth = Boolean(officer.feriasPrev);
+
+        const avatarHtml = photo
+          ? `<img src="${photo}" alt="${officer.name}" class="w-full h-full object-cover" />`
+          : `<div class="w-full h-full bg-gradient-to-br ${style.avatar} flex items-center justify-center font-bold text-xs">${initials}</div>`;
+
+        return `
+          <tr class="border-b border-slate-800/70 hover:bg-slate-800/40 transition-colors">
+            <td class="py-2.5 px-3 font-mono text-xs text-slate-400">${idx + 1}</td>
+            <td class="py-2.5 px-3">
+              <div onclick="triggerQuickPhoto('${officer.rg}', event)" class="w-10 h-11 rounded-lg overflow-hidden border border-slate-700 cursor-pointer relative group/av">
+                ${avatarHtml}
+                <div class="absolute inset-0 bg-black/60 opacity-0 group-hover/av:opacity-100 flex items-center justify-center text-white transition-opacity">
+                  <i class="fa-solid fa-camera text-[10px]"></i>
+                </div>
+              </div>
+            </td>
+            <td class="py-2.5 px-3 whitespace-nowrap"><span class="px-2 py-0.5 rounded text-[11px] font-bold border ${style.badge}">${formatRankDisplay(officer.rank)}</span></td>
+            <td class="py-2.5 px-3 font-mono text-xs font-semibold text-cyan-300 whitespace-nowrap">${officer.rg}</td>
+            <td class="py-2.5 px-3 font-bold text-xs sm:text-sm text-white whitespace-nowrap">${officer.name}</td>
+            <td class="py-2.5 px-3 text-xs"><span class="px-2 py-0.5 rounded-md font-medium whitespace-nowrap ${isUnallocated ? 'bg-slate-800/70 text-slate-500' : 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30'}">${currentSector}</span></td>
+            <td class="py-2.5 px-3">
+              <select onchange="updateAlmanaqueField('${officer.rg}', 'feriasPrev', this.value)" class="w-36 rounded-lg px-2.5 py-1.5 text-xs font-semibold outline-none border cursor-pointer ${hasMonth ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-300' : 'bg-slate-950 border-slate-700 text-amber-300'}">
+                <option value="" ${!officer.feriasPrev ? 'selected' : ''}>-- Definir Mês --</option>
+                ${MONTHS_LIST.map(m => `<option value="${m.key}" ${officer.feriasPrev === m.key ? 'selected' : ''}>${m.key}</option>`).join('')}
+              </select>
+            </td>
+            <td class="py-2.5 px-3">
+              <select onchange="updateAlmanaqueField('${officer.rg}', 'feriasTirado', this.value)" class="w-32 rounded-lg px-2 py-1.5 text-xs font-medium outline-none border bg-slate-950 border-slate-800 text-slate-200">
+                ${statusOptions.map(st => `<option value="${st}" ${(officer.feriasTirado || '') === st ? 'selected' : ''}>${st || 'Pendente'}</option>` ).join('')}
+              </select>
+            </td>
+            <td class="py-2.5 px-3">
+              <input type="text" value="${officer.obs || ''}" onchange="updateAlmanaqueField('${officer.rg}', 'obs', this.value)" placeholder="Obs..." class="w-40 sm:w-48 bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none" />
+            </td>
+            <td class="py-2.5 px-3 text-right">
+              <button onclick="openEditModal('${officer.rg}', '')" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-cyan-600 text-slate-300 hover:text-white text-xs transition-colors cursor-pointer"><i class="fa-solid fa-pen-to-square"></i></button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      container.innerHTML = `
+        <div class="space-y-5">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div onclick="setFeriasFilter('status', 'ALL')" class="cursor-pointer bg-slate-900/90 border ${f.status === 'ALL' ? 'border-cyan-500/50' : 'border-slate-800'} rounded-2xl p-4 flex items-center justify-between">
+              <div>
+                <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total do Efetivo</p>
+                <p class="text-2xl font-extrabold font-mono text-white mt-1">${totalCount}</p>
+              </div>
+              <div class="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center"><i class="fa-solid fa-users"></i></div>
+            </div>
+            <div onclick="setFeriasFilter('status', 'DEFINED')" class="cursor-pointer bg-slate-900/90 border ${f.status === 'DEFINED' ? 'border-emerald-500/60' : 'border-slate-800'} rounded-2xl p-4 flex items-center justify-between">
+              <div>
+                <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Com Previsão</p>
+                <div class="flex items-baseline gap-2 mt-1">
+                  <p class="text-2xl font-extrabold font-mono text-emerald-400">${definedCount}</p>
+                  <span class="text-xs font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-300">${definedPct}%</span>
+                </div>
+              </div>
+              <div class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center"><i class="fa-solid fa-calendar-check"></i></div>
+            </div>
+            <div onclick="setFeriasFilter('status', 'PENDING')" class="cursor-pointer bg-slate-900/90 border ${f.status === 'PENDING' ? 'border-amber-500/60' : 'border-slate-800'} rounded-2xl p-4 flex items-center justify-between">
+              <div>
+                <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Pendentes</p>
+                <p class="text-2xl font-extrabold font-mono text-amber-400 mt-1">${pendingCount}</p>
+              </div>
+              <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center"><i class="fa-solid fa-hourglass-half"></i></div>
+            </div>
+          </div>
+
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-sm font-bold text-white"><i class="fa-solid fa-chart-column text-indigo-400 mr-2"></i> Distribuição Mensal (JAN a DEZ)</h3>
+              ${f.month !== 'ALL' ? `<button onclick="setFeriasFilter('month', 'ALL')" class="px-3 py-1 rounded-lg bg-cyan-500/15 text-cyan-300 text-xs">Filtro Mês: ${f.month} ✕</button>` : ''}
+            </div>
+            <div class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-2">${monthsGridHtml}</div>
+          </div>
+
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+              <div>
+                <h2 class="text-lg font-extrabold text-white">ESCALA DE PREVISÃO DE FÉRIAS (${filteredList.length})</h2>
+                <p class="text-xs text-slate-400">Planejamento e controle de férias de todo o efetivo</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="exportFeriasCSV()" class="px-3 py-2 rounded-xl bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold cursor-pointer"><i class="fa-solid fa-file-csv mr-1.5"></i>Exportar CSV</button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+              <input type="text" value="${f.search}" oninput="setFeriasFilter('search', this.value)" placeholder="Buscar..." class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none" />
+              <select onchange="setFeriasFilter('status', this.value)" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none">
+                <option value="ALL">Situação: Todos</option>
+                <option value="DEFINED" ${f.status === 'DEFINED' ? 'selected' : ''}>Com Previsão</option>
+                <option value="PENDING" ${f.status === 'PENDING' ? 'selected' : ''}>Pendentes</option>
+              </select>
+              <select onchange="setFeriasFilter('month', this.value)" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none">
+                <option value="ALL">Mês: Todos</option>
+                ${MONTHS_LIST.map(m => `<option value="${m.key}" ${f.month === m.key ? 'selected' : ''}>${m.key}</option>`).join('')}
+              </select>
+              <select onchange="setFeriasFilter('sector', this.value)" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none">
+                <option value="ALL">Setor: Todos</option>
+                ${ALL_SECTORS.map(sec => `<option value="${sec}" ${f.sector === sec ? 'selected' : ''}>${sec}</option>`).join('')}
+              </select>
+              <select onchange="setFeriasFilter('rank', this.value)" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none">
+                <option value="ALL">Graduação: Todas</option>
+                ${['ST PM', '1 SGT PM', '2 SGT PM', '3 SGT PM', 'CB PM', 'SD PM'].map(r => `<option value="${r}" ${f.rank === r ? 'selected' : ''}>${r}</option>`).join('')}
+              </select>
+            </div>
+
+            <div class="overflow-x-auto rounded-xl border border-slate-800">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-slate-950 border-b border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    <th class="py-3 px-3">#</th>
+                    <th class="py-3 px-3">Foto</th>
+                    <th class="py-3 px-3">Graduação</th>
+                    <th class="py-3 px-3">RG</th>
+                    <th class="py-3 px-3">Nome de Guerra</th>
+                    <th class="py-3 px-3">Setor Atual</th>
+                    <th class="py-3 px-3">Previsão 2027</th>
+                    <th class="py-3 px-3">Status</th>
+                    <th class="py-3 px-3">Observações</th>
+                    <th class="py-3 px-3 text-right">Ficha</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/50">${rowsHtml}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Tropa com ordenação
+    function renderTropaSection(container) {
+      const slots = appState.sectorSlots.filter(s => s.sector === 'TROPA');
+      let members = slots.map(s => {
+        const off = appState.efetivoTotal.find(o => o.rg === s.rg) || { rank: s.rank, name: s.name, rg: s.rg };
+        return { slotId: s.id, ...off };
+      });
+
+      if (appState.tropaSortMode === 'RG') {
+        members.sort((a, b) => parseInt(a.rg) - parseInt(b.rg));
+      } else if (appState.tropaSortMode === 'ANTIGUIDADE') {
+        members.sort((a, b) => {
+          const wA = RANK_WEIGHTS[a.rank] || 99;
+          const wB = RANK_WEIGHTS[b.rank] || 99;
+          if (wA !== wB) return wA - wB;
+          return parseInt(a.rg) - parseInt(b.rg);
+        });
+      }
+
+      const cardsHtml = members.map((m, idx) => {
+        const style = getRankBadgeStyle(m.rank);
+        const photo = appState.photos[m.rg];
+        const initials = getInitials(m.name);
+        const avatarHtml = photo
+          ? `<img src="${photo}" alt="${m.name}" class="w-full h-full object-cover" />`
+          : `<div class="w-full h-full bg-gradient-to-br ${style.avatar} flex items-center justify-center font-bold text-sm">${initials}</div>`;
+
+        return `
+          <div class="bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 flex items-center gap-3.5 transition-all group shadow-md">
+            <div onclick="triggerQuickPhoto('${m.rg}', event)" class="w-14 h-16 rounded-xl overflow-hidden border border-slate-700 cursor-pointer relative shrink-0">
+              ${avatarHtml}
+              <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
+                <i class="fa-solid fa-camera text-xs"></i>
+              </div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${style.badge}">${formatRankDisplay(m.rank)}</span>
+                <span class="text-xs font-mono text-cyan-400 font-semibold">${m.rg}</span>
+              </div>
+              <h4 class="text-sm font-bold text-white truncate mt-1">${m.name}</h4>
+              <p class="text-[11px] text-slate-400 mt-0.5">Ordem Tropa: #${idx + 1}</p>
+            </div>
+            <button onclick="openEditModal('${m.rg}', '${m.slotId}')" class="p-2 rounded-xl bg-slate-800 hover:bg-cyan-600 text-slate-300 hover:text-white transition-colors cursor-pointer" title="Editar Policial">
+              <i class="fa-solid fa-pen-to-square text-xs"></i>
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = `
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div>
+              <h2 class="text-lg font-extrabold text-white">TROPA GPR (${members.length} Militares)</h2>
+              <p class="text-xs text-slate-400">Efetivo geral alocado na Tropa</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-slate-400">Ordenar por:</span>
+              <select onchange="setTropaSort(this.value)" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 outline-none">
+                <option value="ORIGINAL" ${appState.tropaSortMode === 'ORIGINAL' ? 'selected' : ''}>Original da Planilha</option>
+                <option value="ANTIGUIDADE" ${appState.tropaSortMode === 'ANTIGUIDADE' ? 'selected' : ''}>Antiguidade (Graduação + RG)</option>
+                <option value="RG" ${appState.tropaSortMode === 'RG' ? 'selected' : ''}>Número de RG</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">${cardsHtml}</div>
+        </div>
+      `;
+    }
+
+    function setTropaSort(mode) {
+      appState.tropaSortMode = mode;
+      saveState();
+      renderTabContent();
+    }
+
+    // Setores Estruturados
+    function renderStructuredSector(container, sectorName) {
+      const subgroups = SECTOR_SUBGROUPS[sectorName] || [];
+      const slots = appState.sectorSlots.filter(s => s.sector === sectorName);
+
+      const groupsHtml = subgroups.map(sub => {
+        const subSlots = slots.filter(s => s.subgroup === sub);
+        return renderSectorSubGroupCard(sub, subSlots);
+      }).join('');
+
+      container.innerHTML = `
+        <div class="space-y-6">
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-extrabold text-white uppercase">${sectorName}</h2>
+              <p class="text-xs text-slate-400">Setor operacional estruturado com turnos e subgrupos</p>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">${slots.length} policiais</span>
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">${groupsHtml}</div>
+        </div>
+      `;
+    }
+
+    function renderSectorSubGroupCard(subTitle, subSlots) {
+      const membersHtml = subSlots.map(s => {
+        const off = appState.efetivoTotal.find(o => o.rg === s.rg) || { rank: s.rank, name: s.name, rg: s.rg };
+        const style = getRankBadgeStyle(off.rank);
+        const photo = appState.photos[off.rg];
+        const initials = getInitials(off.name);
+        const avatarHtml = photo
+          ? `<img src="${photo}" alt="${off.name}" class="w-full h-full object-cover" />`
+          : `<div class="w-full h-full bg-gradient-to-br ${style.avatar} flex items-center justify-center font-bold text-xs">${initials}</div>`;
+
+        return `
+          <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 flex items-center gap-3 group">
+            <div onclick="triggerQuickPhoto('${off.rg}', event)" class="w-11 h-13 rounded-lg overflow-hidden border border-slate-700 cursor-pointer relative shrink-0">
+              ${avatarHtml}
+              <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity"><i class="fa-solid fa-camera text-[10px]"></i></div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border ${style.badge}">${formatRankDisplay(off.rank)}</span>
+                <span class="text-xs font-mono text-cyan-400">${off.rg}</span>
+              </div>
+              <h5 class="text-xs sm:text-sm font-bold text-white truncate mt-0.5">${off.name}</h5>
+            </div>
+            <button onclick="openEditModal('${off.rg}', '${s.id}')" class="p-2 rounded-lg bg-slate-900 hover:bg-cyan-600 text-slate-300 hover:text-white transition-colors cursor-pointer" title="Editar Policial"><i class="fa-solid fa-pen-to-square text-xs"></i></button>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+            <h3 class="text-xs font-extrabold uppercase tracking-wider text-cyan-400">${subTitle}</h3>
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300">${subSlots.length}</span>
+          </div>
+          <div class="space-y-2">${membersHtml || '<p class="text-xs text-slate-500 italic py-2">Nenhum militar alocado neste subgrupo.</p>'}</div>
+        </div>
+      `;
+    }
+
+    // Setores Simples
+    function renderSimpleSector(container, sectorName) {
+      const slots = appState.sectorSlots.filter(s => s.sector === sectorName);
+      const cardsHtml = slots.map(s => {
+        const off = appState.efetivoTotal.find(o => o.rg === s.rg) || { rank: s.rank, name: s.name, rg: s.rg };
+        const style = getRankBadgeStyle(off.rank);
+        const photo = appState.photos[off.rg];
+        const initials = getInitials(off.name);
+        const avatarHtml = photo
+          ? `<img src="${photo}" alt="${off.name}" class="w-full h-full object-cover" />`
+          : `<div class="w-full h-full bg-gradient-to-br ${style.avatar} flex items-center justify-center font-bold text-sm">${initials}</div>`;
+
+        return `
+          <div class="bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 flex items-center gap-3.5 transition-all group shadow-md">
+            <div onclick="triggerQuickPhoto('${off.rg}', event)" class="w-14 h-16 rounded-xl overflow-hidden border border-slate-700 cursor-pointer relative shrink-0">
+              ${avatarHtml}
+              <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity"><i class="fa-solid fa-camera text-xs"></i></div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${style.badge}">${formatRankDisplay(off.rank)}</span>
+                <span class="text-xs font-mono text-cyan-400 font-semibold">${off.rg}</span>
+              </div>
+              <h4 class="text-sm font-bold text-white truncate mt-1">${off.name}</h4>
+            </div>
+            <button onclick="openEditModal('${off.rg}', '${s.id}')" class="p-2 rounded-xl bg-slate-800 hover:bg-cyan-600 text-slate-300 hover:text-white transition-colors cursor-pointer" title="Editar Policial"><i class="fa-solid fa-pen-to-square text-xs"></i></button>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = `
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div>
+              <h2 class="text-lg font-extrabold text-white uppercase">${sectorName} (${slots.length} Militares)</h2>
+              <p class="text-xs text-slate-400">Listagem do setor</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">${cardsHtml || '<p class="text-xs text-slate-500 py-4">Nenhum militar neste setor.</p>'}</div>
+        </div>
+      `;
+    }
+
+    // Busca Global
+    const globalSearchInput = document.getElementById('global-search');
+    const clearSearchBtn = document.getElementById('clear-search-btn');
+    const searchResultsSection = document.getElementById('search-results-section');
+    const searchResultsGrid = document.getElementById('search-results-grid');
+    const searchSummaryText = document.getElementById('search-summary-text');
+
+    globalSearchInput.addEventListener('input', (e) => {
+      const q = e.target.value.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (q.length === 0) {
+        clearSearch();
+        return;
+      }
+      clearSearchBtn.classList.remove('hidden');
+      searchResultsSection.classList.remove('hidden');
+
+      const matches = appState.efetivoTotal.filter(o => {
+        const hay = `${o.name} ${o.rg} ${o.rank} ${getOfficerSectorLabel(o.rg)} ${o.obs || ''}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return hay.includes(q);
+      });
+
+      searchSummaryText.textContent = `Encontrados ${matches.length} militar(es) correspondentes a "${e.target.value}"`;
+
+      searchResultsGrid.innerHTML = matches.map(m => {
+        const style = getRankBadgeStyle(m.rank);
+        const photo = appState.photos[m.rg];
+        const initials = getInitials(m.name);
+        const sectorLbl = getOfficerSectorLabel(m.rg);
+        const avatarHtml = photo
+          ? `<img src="${photo}" alt="${m.name}" class="w-full h-full object-cover" />`
+          : `<div class="w-full h-full bg-gradient-to-br ${style.avatar} flex items-center justify-center font-bold text-xs">${initials}</div>`;
+
+        return `
+          <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
+            <div class="w-12 h-14 rounded-lg overflow-hidden border border-slate-700 shrink-0">${avatarHtml}</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border ${style.badge}">${formatRankDisplay(m.rank)}</span>
+                <span class="text-xs font-mono text-cyan-400">${m.rg}</span>
+              </div>
+              <h5 class="text-xs font-bold text-white truncate mt-0.5">${m.name}</h5>
+              <p class="text-[10px] text-slate-400 truncate mt-0.5">${sectorLbl}</p>
+            </div>
+            <button onclick="openEditModal('${m.rg}', '')" class="p-2 rounded-lg bg-slate-900 hover:bg-cyan-600 text-slate-300 text-xs"><i class="fa-solid fa-pen-to-square"></i></button>
+          </div>
+        `;
+      }).join('') || `<p class="text-xs text-slate-400 col-span-full py-4 text-center">Nenhum policial encontrado.</p>`;
+    });
+
+    clearSearchBtn.addEventListener('click', clearSearch);
+
+    function clearSearch() {
+      globalSearchInput.value = '';
+      clearSearchBtn.classList.add('hidden');
+      searchResultsSection.classList.add('hidden');
+      searchResultsGrid.innerHTML = '';
+    }
+
+    // Modal de Edição & Criação
+    function openAddModal() {
+      document.getElementById('form-mode').value = 'add';
+      document.getElementById('form-original-rg').value = '';
+      document.getElementById('form-slot-id').value = '';
+      document.getElementById('modal-title').textContent = 'Cadastrar Novo Policial';
+      document.getElementById('modal-subtitle').textContent = 'Adicione um novo militar ao efetivo geral';
+
+      document.getElementById('form-rank').value = 'SD PM';
+      document.getElementById('form-rg').value = '';
+      document.getElementById('form-name').value = '';
+      document.getElementById('form-sector').value = '';
+      document.getElementById('form-ferias-prev').value = '';
+      document.getElementById('form-ferias-tirado').value = '';
+      document.getElementById('form-obs').value = '';
+
+      document.getElementById('subgroup-wrapper').classList.add('hidden');
+      document.getElementById('btn-remove-from-sector').classList.add('hidden');
+      document.getElementById('btn-delete-officer').classList.add('hidden');
+
+      renderModalPhotoPreview(null);
+      document.getElementById('officer-modal').classList.remove('hidden');
+      document.getElementById('officer-modal').classList.add('flex');
+    }
+
+    function openEditModal(rg, slotId) {
+      const officer = appState.efetivoTotal.find(o => o.rg === rg);
+      if (!officer) return;
+
+      document.getElementById('form-mode').value = 'edit';
+      document.getElementById('form-original-rg').value = rg;
+      document.getElementById('form-slot-id').value = slotId || '';
+      document.getElementById('modal-title').textContent = `Editar Ficha: ${officer.name}`;
+      document.getElementById('modal-subtitle').textContent = `RG: ${officer.rg} • Graduação: ${officer.rank}`;
+
+      document.getElementById('form-rank').value = officer.rank;
+      document.getElementById('form-rg').value = officer.rg;
+      document.getElementById('form-name').value = officer.name;
+      document.getElementById('form-ferias-prev').value = officer.feriasPrev || '';
+      document.getElementById('form-ferias-tirado').value = officer.feriasTirado || '';
+      document.getElementById('form-obs').value = officer.obs || '';
+
+      const slot = slotId ? appState.sectorSlots.find(s => s.id === slotId) : appState.sectorSlots.find(s => s.rg === rg);
+      if (slot) {
+        document.getElementById('form-sector').value = slot.sector;
+        updateSubgroupOptions();
+        document.getElementById('form-subgroup').value = slot.subgroup || '';
+        document.getElementById('btn-remove-from-sector').classList.remove('hidden');
+      } else {
+        document.getElementById('form-sector').value = '';
+        document.getElementById('subgroup-wrapper').classList.add('hidden');
+        document.getElementById('btn-remove-from-sector').classList.add('hidden');
+      }
+
+      document.getElementById('btn-delete-officer').classList.remove('hidden');
+      renderModalPhotoPreview(appState.photos[rg] || null);
+
+      document.getElementById('officer-modal').classList.remove('hidden');
+      document.getElementById('officer-modal').classList.add('flex');
+    }
+
+    function closeOfficerModal() {
+      document.getElementById('officer-modal').classList.remove('flex');
+      document.getElementById('officer-modal').classList.add('hidden');
+    }
+
+    function updateSubgroupOptions() {
+      const sector = document.getElementById('form-sector').value;
+      const subWrapper = document.getElementById('subgroup-wrapper');
+      const subSelect = document.getElementById('form-subgroup');
+
+      const subs = SECTOR_SUBGROUPS[sector] || [];
+      if (subs.length > 0) {
+        subSelect.innerHTML = subs.map(s => `<option value="${s}">${s}</option>`).join('');
+        subWrapper.classList.remove('hidden');
+      } else {
+        subSelect.innerHTML = '';
+        subWrapper.classList.add('hidden');
+      }
+    }
+
+    function renderModalPhotoPreview(photoUrl) {
+      const preview = document.getElementById('modal-photo-preview');
+      const removeBtn = document.getElementById('modal-remove-photo-btn');
+      if (photoUrl) {
+        preview.innerHTML = `<img src="${photoUrl}" class="w-full h-full object-cover" />`;
+        removeBtn.classList.remove('hidden');
+      } else {
+        preview.innerHTML = `<div class="flex flex-col items-center justify-center text-slate-500 text-xs p-2 text-center"><i class="fa-solid fa-user text-xl mb-1"></i><span>Sem foto</span></div>`;
+        removeBtn.classList.add('hidden');
+      }
+    }
+
+    function handleModalPhotoUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      compressImage(file, (base64) => {
+        const rg = document.getElementById('form-rg').value.trim();
+        if (rg) appState.photos[rg] = base64;
+        renderModalPhotoPreview(base64);
+        saveState();
+        showToast('Foto atualizada com sucesso!');
+      });
+    }
+
+    function removeModalPhoto() {
+      const rg = document.getElementById('form-rg').value.trim();
+      if (rg && appState.photos[rg]) delete appState.photos[rg];
+      renderModalPhotoPreview(null);
+      saveState();
+      showToast('Foto removida.', 'info');
+    }
+
+    // Compressão de Imagem via Canvas
+    function compressImage(file, callback) {
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 300;
+          const MAX_HEIGHT = 400;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          callback(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Upload Rápido de Foto por Click no Card
+    function triggerQuickPhoto(rg, event) {
+      event.stopPropagation();
+      quickPhotoRgTarget = rg;
+      document.getElementById('quick-photo-input').click();
+    }
+
+    document.getElementById('quick-photo-input').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file || !quickPhotoRgTarget) return;
+      compressImage(file, (base64) => {
+        appState.photos[quickPhotoRgTarget] = base64;
+        saveState();
+        renderAll();
+        showToast('Foto atualizada!');
+        quickPhotoRgTarget = null;
+      });
+      e.target.value = '';
+    });
+
+    // Salvar Formulário do Policial
+    function saveOfficerForm(e) {
+      e.preventDefault();
+      const mode = document.getElementById('form-mode').value;
+      const originalRg = document.getElementById('form-original-rg').value;
+      const slotId = document.getElementById('form-slot-id').value;
+
+      const rank = document.getElementById('form-rank').value;
+      const rg = document.getElementById('form-rg').value.trim();
+      const name = document.getElementById('form-name').value.trim().toUpperCase();
+      const sector = document.getElementById('form-sector').value;
+      const subgroup = document.getElementById('form-subgroup').value || '';
+      const feriasPrev = document.getElementById('form-ferias-prev').value;
+      const feriasTirado = document.getElementById('form-ferias-tirado').value;
+      const obs = document.getElementById('form-obs').value.trim();
+
+      if (!rg || !name) {
+        showToast('Preencha RG e Nome de Guerra.', 'error');
+        return;
+      }
+
+      if (mode === 'add') {
+        const existing = appState.efetivoTotal.find(o => o.rg === rg);
+        if (existing) {
+          showToast('Já existe um militar cadastrado com este RG.', 'error');
+          return;
+        }
+        appState.efetivoTotal.push({
+          ordem: appState.efetivoTotal.length + 1,
+          rank, rg, name, feriasPrev, feriasTirado, obs
+        });
+
+        if (sector) {
+          appState.sectorSlots.push({
+            id: 'slot_' + Date.now(),
+            sector, subgroup, rank, rg, name
+          });
+        }
+        showToast('Policial cadastrado com sucesso!');
+      } else {
+        const officer = appState.efetivoTotal.find(o => o.rg === originalRg);
+        if (officer) {
+          officer.rank = rank;
+          officer.rg = rg;
+          officer.name = name;
+          officer.feriasPrev = feriasPrev;
+          officer.feriasTirado = feriasTirado;
+          officer.obs = obs;
+        }
+
+        if (originalRg !== rg && appState.photos[originalRg]) {
+          appState.photos[rg] = appState.photos[originalRg];
+          delete appState.photos[originalRg];
+        }
+
+        // Atualizar ou inserir slot no setor
+        if (sector) {
+          let slot = slotId ? appState.sectorSlots.find(s => s.id === slotId) : appState.sectorSlots.find(s => s.rg === originalRg);
+          if (slot) {
+            slot.sector = sector;
+            slot.subgroup = subgroup;
+            slot.rank = rank;
+            slot.rg = rg;
+            slot.name = name;
+          } else {
+            appState.sectorSlots.push({
+              id: 'slot_' + Date.now(),
+              sector, subgroup, rank, rg, name
+            });
+          }
+        } else if (slotId) {
+          appState.sectorSlots = appState.sectorSlots.filter(s => s.id !== slotId);
+        }
+
+        showToast('Ficha atualizada com sucesso!');
+      }
+
+      saveState();
+      closeOfficerModal();
+      renderAll();
+    }
+
+    function removeFromSectorOnly() {
+      const slotId = document.getElementById('form-slot-id').value;
+      const originalRg = document.getElementById('form-original-rg').value;
+      if (slotId) {
+        appState.sectorSlots = appState.sectorSlots.filter(s => s.id !== slotId);
+      } else {
+        appState.sectorSlots = appState.sectorSlots.filter(s => s.rg !== originalRg);
+      }
+      saveState();
+      closeOfficerModal();
+      renderAll();
+      showToast('Policial removido do setor.', 'info');
+    }
+
+    function deleteOfficerCompletely() {
+      const originalRg = document.getElementById('form-original-rg').value;
+      openConfirmModal(
+        'Excluir Policial do Sistema',
+        'Tem certeza que deseja excluir permanentemente este policial do efetivo total e de todos os setores?',
+        () => {
+          appState.efetivoTotal = appState.efetivoTotal.filter(o => o.rg !== originalRg);
+          appState.sectorSlots = appState.sectorSlots.filter(s => s.rg !== originalRg);
+          if (appState.photos[originalRg]) delete appState.photos[originalRg];
+          saveState();
+          closeOfficerModal();
+          renderAll();
+          showToast('Policial excluído do sistema.', 'info');
+        }
+      );
+    }
+
+    // Exportação e Importação de Dados
+    function exportCSV() {
+      const headers = ['ORDEM', 'GRADUACAO', 'RG', 'NOME DE GUERRA', 'SETOR ATUAL', 'PREVISAO FERIAS', 'SITUACAO', 'OBSERVACOES'];
+      const rows = appState.efetivoTotal.map((o, idx) => {
+        const setor = getOfficerSectorLabel(o.rg).replace(/;/g, ',');
+        return [
+          idx + 1, formatRankDisplay(o.rank), o.rg, o.name, setor,
+          o.feriasPrev || '', o.feriasTirado || '', (o.obs || '').replace(/;/g, ',')
+        ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(';');
+      });
+
+      const csvContent = '\uFEFF' + [headers.join(';'), ...rows].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `EFETIVO_CIA_COMPLETO_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Planilha CSV exportada com sucesso!');
+    }
+
+    function exportJSON() {
+      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(appState, null, 2));
+      const a = document.createElement('a');
+      a.href = dataStr;
+      a.download = `BACKUP_EFETIVO_CIA_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      showToast('Backup JSON exportado com sucesso!');
+    }
+
+    document.getElementById('import-json-input').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const parsed = JSON.parse(evt.target.result);
+          if (parsed && Array.isArray(parsed.efetivoTotal) && Array.isArray(parsed.sectorSlots)) {
+            appState = parsed;
+            saveState();
+            renderAll();
+            showToast('Backup restaurado com sucesso!');
+          } else {
+            showToast('Arquivo JSON em formato inválido.', 'error');
+          }
+        } catch (err) {
+          showToast('Erro ao ler arquivo JSON.', 'error');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    function openConfirmReset() {
+      openConfirmModal(
+        'Restaurar Dados Originais',
+        'Deseja restaurar todos os dados originais da planilha? (As fotos cadastradas serão mantidas)',
+        () => {
+          const oldPhotos = appState.photos;
+          appState = parseInitialData();
+          appState.photos = oldPhotos;
+          saveState();
+          renderAll();
+          showToast('Dados originais restaurados com sucesso!');
+        }
+      );
+    }
+
+    // Inicialização ao carregar a página
+    window.onload = function() {
+      loadState();
+      renderAll();
+    };
+  </script>
+</body>
+</html>
